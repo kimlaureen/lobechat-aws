@@ -21,9 +21,9 @@
 
 | Field | Value |
 |---|---|
-| Student name | TODO |
-| ESADE email | TODO |
-| GitHub repo URL | TODO (must be **private**; user `joseporiolrius` invited as collaborator) |
+| Student name | Kim Schäfer |
+| ESADE email | kimlaureen.schafer@alumni.esade.edu |
+| GitHub repo URL | https://github.com/kimlaureen/lobechat-aws (private; `joseporiolrius` invited as collaborator) |
 | Latest commit SHA | TODO (`git rev-parse HEAD`) |
 | Final tag | TODO (`final-vX.Y.Z`) |
 
@@ -31,7 +31,7 @@
 
 <!-- Grader clicks. If down or HTTP, practical = 0. -->
 
-**[https://TODO](https://TODO)**
+**[https://kimlaureen.duckdns.org](https://kimlaureen.duckdns.org)**
 
 ## 3. Screenshot — LobeChat over HTTPS, logged in
 

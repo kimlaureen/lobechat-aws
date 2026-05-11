@@ -1,0 +1,225 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LobeChat final project — single EC2 instance with Caddy reverse proxy
+
+Parameters:
+  KeyName:
+    Type: String
+    Description: Name of an existing EC2 key pair for SSH access
+
+  LatestUbuntu24AMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Description: Ubuntu 24.04 LTS AMI (resolved from SSM, no hardcoded ID)
+
+  GithubToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub fine-grained PAT with Contents=Read for kimlaureen/lobechat-aws
+
+  OpenrouterApiKey:
+    Type: String
+    NoEcho: true
+    Description: OpenRouter API key for LLM access
+
+  DuckdnsToken:
+    Type: String
+    NoEcho: true
+    Description: DuckDNS token for kimlaureen.duckdns.org
+
+  MinioRootPassword:
+    Type: String
+    NoEcho: true
+    Default: minioadmin2026
+    Description: MinIO root password (must match config/mcp_settings.json)
+
+Resources:
+
+  # --- Networking ---
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: lobechat-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: lobechat-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: eu-west-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: lobechat-public-subnet
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: lobechat-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  # --- Security Group ---
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: LobeChat security group — only proxy ports open, 47000 blocked
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP — Caddy ACME challenge and redirect to HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS — LobeChat via Caddy
+        - IpProtocol: tcp
+          FromPort: 9000
+          ToPort: 9000
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS — MinIO S3 via Caddy
+        - IpProtocol: tcp
+          FromPort: 47002
+          ToPort: 47002
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS — Casdoor SSO via Caddy
+      Tags:
+        - Key: Name
+          Value: lobechat-sg
+
+  # --- IAM Role ---
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lobechat-instance-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SSMReadSecrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/lobechat/*
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: lobechat-instance-profile
+      Roles:
+        - !Ref InstanceRole
+
+  # --- EC2 Instance ---
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: SubnetRouteTableAssociation
+    Properties:
+      InstanceType: t3a.xlarge
+      ImageId: !Ref LatestUbuntu24AMI
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      IamInstanceProfile: !Ref InstanceProfile
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 60
+            VolumeType: gp3
+            DeleteOnTermination: true
+      # Allow Docker containers to reach EC2 instance metadata (IAM role credentials)
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 2
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec >> /var/log/userdata.log 2>&1
+
+          # Install git
+          apt-get update -y
+          apt-get install -y git curl
+
+          # Clone private repo using GitHub token passed as CloudFormation parameter
+          git clone https://kimlaureen:${GithubToken}@github.com/kimlaureen/lobechat-aws \
+            /opt/lobechat-aws
+          # Remove token from git config immediately
+          git -C /opt/lobechat-aws remote set-url origin https://github.com/kimlaureen/lobechat-aws
+
+          # Export secrets so userdata.sh can write the .env file
+          export OPENROUTER_API_KEY="${OpenrouterApiKey}"
+          export DUCKDNS_TOKEN="${DuckdnsToken}"
+          export MINIO_ROOT_PASSWORD="${MinioRootPassword}"
+
+          # Hand off to the main setup script
+          bash /opt/lobechat-aws/infra/userdata.sh
+      Tags:
+        - Key: Name
+          Value: lobechat-server
+
+Outputs:
+  PublicIP:
+    Description: Public IP of the EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
+
+  PublicDNS:
+    Description: Public DNS of the EC2 instance
+    Value: !GetAtt EC2Instance.PublicDnsName
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance

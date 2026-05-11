@@ -19,6 +19,9 @@ uv.lock
 aws_credentials.yaml
 *.pem
 
+# Local deployment config (contains secrets)
+infra/config.local
+
 # IDE
 .idea/
 .vscode/

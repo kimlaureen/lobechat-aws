@@ -1,9 +1,25 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9000:9000"
+      - "47002:47002"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+      - ./config/caddy:/config
+    restart: unless-stopped
+    depends_on:
+      - lobe-chat
+      - casdoor
+      - minio
+
   casdoor:
     image: casbin/casdoor:v2.13.0
     container_name: casdoor
-    ports:
-      - "${CASDOOR_PORT:-47002}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,38 +36,36 @@ services:
   lobe-chat:
     image: lobehub/lobe-chat-database
     container_name: lobe-chat
-    ports:
-      - "${LOBECHAT_PORT:-47000}:3210"
     volumes:
       # HOTFIX: Patch MCP callTool to add session retry logic
       - ./patches/route.js:/app/.next/server/app/(backend)/trpc/tools/[trpc]/route.js:ro
     environment:
       # App configuration
-      - APP_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
+      - APP_URL=${APP_URL:-http://localhost:47000}
       # Database configuration
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/lobechat
       # NextAuth SSO configuration
       - NEXT_AUTH_SSO_PROVIDERS=casdoor
       - NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}
-      - NEXTAUTH_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
-      - AUTH_URL=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
+      - NEXTAUTH_URL=${APP_URL:-http://localhost:47000}
+      - AUTH_URL=${APP_URL:-http://localhost:47000}
       # Casdoor configuration
-      - AUTH_CASDOOR_ISSUER=http://${HOST_DOMAIN:-localhost}:${CASDOOR_PORT:-47002}
+      - AUTH_CASDOOR_ISSUER=${CASDOOR_URL:-http://localhost:47002}
       - AUTH_CASDOOR_ID=${AUTH_CASDOOR_ID}
       - AUTH_CASDOOR_SECRET=${AUTH_CASDOOR_SECRET}
       # Trust custom hostname for NextAuth
       - AUTH_TRUST_HOST=true
-      # S3 Storage configuration
-      - S3_ENDPOINT=http://${HOST_DOMAIN:-localhost}:${MINIO_PORT:-47005}
+      # S3 Storage configuration — internal endpoint for server-side, public domain for browser
+      - S3_ENDPOINT=http://minio:9000
       - S3_BUCKET=${S3_BUCKET:-lobe}
-      - S3_PUBLIC_DOMAIN=http://${HOST_DOMAIN:-localhost}:${MINIO_PORT:-47005}
+      - S3_PUBLIC_DOMAIN=${S3_PUBLIC_DOMAIN:-http://localhost:47005}
       - S3_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minioadmin}
       - S3_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - S3_ENABLE_PATH_STYLE=1
       - S3_SET_ACL=0
       # Key Vaults Secret
       - KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}
-      # OpenRouter integration
+      # OpenRouter integration (replaces local vLLM)
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - ENABLED_OPENROUTER=1
       # OpenRouter as OpenAI-compatible endpoint (for embeddings)
@@ -69,8 +83,6 @@ services:
       casdoor:
         condition: service_started
       minio:
-        condition: service_healthy
-      vllm:
         condition: service_healthy
 
   mcphub:
@@ -90,7 +102,7 @@ services:
       - SSH_ALLOWED_PATHS=${SSH_ALLOWED_PATHS}
       - SSH_COMMANDS_BLACKLIST=${SSH_COMMANDS_BLACKLIST}
       - SSH_ARGUMENTS_BLACKLIST=${SSH_ARGUMENTS_BLACKLIST}
-      # AWS region config (credentials read from mounted ~/.aws)
+      # AWS region — credentials come from EC2 IAM role via instance metadata
       - AWS_REGION=${AWS_REGION:-eu-west-1}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-west-1}
       # Notion MCP integration token (Bearer header)
@@ -99,9 +111,7 @@ services:
       - ./config/mcp_settings.json:/app/mcp_settings.json
       - ./data/mcphub:/app/data
       - ./config/ssh:/app/ssh:ro
-      # AWS credentials - mounted so boto3 reads fresh creds without container restart
-      - ~/.aws:/root/.aws:ro
-      # Docker socket for MCP servers that use docker (aws-resources-operations)
+      # Docker socket for MCP servers that use docker (d2, aws-resources-operations)
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
@@ -148,51 +158,15 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  vllm:
-    image: vllm/vllm-openai:gemma4
-    container_name: vllm
-    ports:
-      - "${VLLM_PORT:-47007}:8000"
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
-    volumes:
-      - ./data/huggingface:/root/.cache/huggingface
-    command: >
-      --model ${VLLM_MODEL_ID:-google/gemma-4-E4B-it}
-      --trust-remote-code
-      --max-model-len 32768
-      --dtype bfloat16
-      --gpu-memory-utilization 0.9
-      --enable-auto-tool-choice
-      --tool-call-parser gemma4
-      --reasoning-parser gemma4
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 300s
-
   minio:
     image: minio/minio:latest
     container_name: minio
-    ports:
-      - "${MINIO_PORT:-47005}:9000"      # S3 API
-      - "${MINIO_CONSOLE_PORT:-47006}:9001"      # MinIO Console
     volumes:
       - ./data/minio:/data
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-      - MINIO_API_CORS_ALLOW_ORIGIN=http://${HOST_DOMAIN:-localhost}:${LOBECHAT_PORT:-47000}
+      - MINIO_API_CORS_ALLOW_ORIGIN=${MINIO_CORS_ORIGIN:-http://localhost:47000}
     command: server /data --console-address ":9001"
     restart: unless-stopped
     healthcheck:
@@ -201,7 +175,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   linux-sandbox:
     build:
       context: .
@@ -209,7 +182,7 @@ services:
     image: lobechat-aws-linux-sandbox:latest
     container_name: linux-sandbox
     volumes:
-      - /home/oriol/.ssh:/home/oriol/.ssh
+      - /home/ubuntu/.ssh:/home/oriol/.ssh
     restart: unless-stopped
     # Idle container; commands are exec'd in via the linux-sandbox MCP server
     command: ["tail", "-f", "/dev/null"]

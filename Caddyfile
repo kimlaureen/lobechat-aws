@@ -1,0 +1,16 @@
+# LobeChat — main app
+kimlaureen.duckdns.org {
+	reverse_proxy lobe-chat:3210 {
+		flush_interval -1
+	}
+}
+
+# MinIO S3 — file uploads/downloads from browser
+kimlaureen.duckdns.org:9000 {
+	reverse_proxy minio:9000
+}
+
+# Casdoor SSO — OAuth login
+kimlaureen.duckdns.org:47002 {
+	reverse_proxy casdoor:8000
+}

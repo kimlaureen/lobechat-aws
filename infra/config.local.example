@@ -1,0 +1,9 @@
+# Copy to config.local and fill in your values.
+# config.local is gitignored — never commit it.
+
+KEY_NAME=lobechat-key
+
+GITHUB_TOKEN=REPLACE-WITH-YOUR-GITHUB-PAT
+OPENROUTER_API_KEY=REPLACE-WITH-YOUR-OPENROUTER-KEY
+DUCKDNS_TOKEN=REPLACE-WITH-YOUR-DUCKDNS-TOKEN
+MINIO_ROOT_PASSWORD=minioadmin2026

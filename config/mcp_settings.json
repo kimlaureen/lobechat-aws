@@ -93,7 +93,7 @@
         "MINIO_ENDPOINT": "minio",
         "MINIO_PORT": "9000",
         "MINIO_ACCESS_KEY": "minioadmin",
-        "MINIO_SECRET_KEY": "minioadmin",
+        "MINIO_SECRET_KEY": "minioadmin2026",
         "MINIO_USE_SSL": "false",
         "MINIO_REGION": "us-east-1"
       }
