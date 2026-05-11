@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: LobeChat final project — single EC2 instance with Caddy reverse proxy
+Description: LobeChat final project - single EC2 instance with Caddy reverse proxy
 
 Parameters:
   KeyName:
@@ -97,7 +97,7 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: LobeChat security group — only proxy ports open, 47000 blocked
+      GroupDescription: LobeChat security group - only proxy ports open, 47000 blocked
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -109,22 +109,22 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-          Description: HTTP — Caddy ACME challenge and redirect to HTTPS
+          Description: HTTP - Caddy ACME challenge and redirect to HTTPS
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-          Description: HTTPS — LobeChat via Caddy
+          Description: HTTPS - LobeChat via Caddy
         - IpProtocol: tcp
           FromPort: 9000
           ToPort: 9000
           CidrIp: 0.0.0.0/0
-          Description: HTTPS — MinIO S3 via Caddy
+          Description: HTTPS - MinIO S3 via Caddy
         - IpProtocol: tcp
           FromPort: 47002
           ToPort: 47002
           CidrIp: 0.0.0.0/0
-          Description: HTTPS — Casdoor SSO via Caddy
+          Description: HTTPS - Casdoor SSO via Caddy
       Tags:
         - Key: Name
           Value: lobechat-sg
