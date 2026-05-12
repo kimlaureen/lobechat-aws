@@ -12,7 +12,7 @@
 
 ## Checklist
 
-- [ ] **Casdoor login flow** — completes from the public URL without `Secure cookie` / `redirect_uri` errors.  
+- [x] **Casdoor login flow** — completes from the public URL without `Secure cookie` / `redirect_uri` errors.  
   Screenshot: `casdoor-login.png`
 
 - [ ] **Streaming works** — chat response tokens arrive incrementally (confirms SSE path through Caddy).  
