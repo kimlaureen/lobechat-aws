@@ -31,7 +31,7 @@
   TODO — paste curl output here
   ```
 
-- [ ] **Valid certificate chain** — browser shows no warning; issuer is Let's Encrypt (public CA).  
+- [x] **Valid certificate chain** — browser shows no warning; issuer is Let's Encrypt (public CA).  
   Screenshot: `tls-cert.png`
 
 ---

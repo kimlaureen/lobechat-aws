@@ -46,6 +46,10 @@
 
 ![lobechat-https](lobechat-https.png)
 
+*LobeChat at `kimlaureen.duckdns.org` with ESADE email visible in terminal. Certificate: Let's Encrypt, connection secure.*
+
+![tls-cert](tls-cert.png)
+
 ## 4. Screenshot — chat working (streaming + MCP)
 
 <!--
