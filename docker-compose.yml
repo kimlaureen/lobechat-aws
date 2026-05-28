@@ -71,6 +71,10 @@ services:
       # OpenRouter as OpenAI-compatible endpoint (for embeddings)
       - OPENAI_API_KEY=${OPENROUTER_API_KEY}
       - OPENAI_PROXY_URL=https://openrouter.ai/api/v1
+      # Free local model provider
+      - ENABLED_OLLAMA=1
+      - OLLAMA_PROXY_URL=http://ollama:11434
+      - OLLAMA_MODEL_LIST=qwen2.5:1.5b
       # Embedding model configuration
       - DEFAULT_FILES_CONFIG=embedding_model=openai/text-embedding-3-small
       - LLM_VISION_IMAGE_USE_BASE64=1
@@ -84,6 +88,17 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+      ollama:
+        condition: service_started
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    restart: unless-stopped
 
   mcphub:
     build:
