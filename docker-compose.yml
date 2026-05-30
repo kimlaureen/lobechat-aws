@@ -55,8 +55,8 @@ services:
       - AUTH_CASDOOR_SECRET=${AUTH_CASDOOR_SECRET}
       # Trust custom hostname for NextAuth
       - AUTH_TRUST_HOST=true
-      # S3 Storage configuration — internal endpoint for server-side, public domain for browser
-      - S3_ENDPOINT=http://minio:9000
+      # S3 Storage configuration — presigned URLs must use the public HTTPS endpoint
+      - S3_ENDPOINT=${S3_PUBLIC_DOMAIN:-http://localhost:47005}
       - S3_BUCKET=${S3_BUCKET:-lobe}
       - S3_PUBLIC_DOMAIN=${S3_PUBLIC_DOMAIN:-http://localhost:47005}
       - S3_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minioadmin}
@@ -74,9 +74,9 @@ services:
       # Free local model provider
       - ENABLED_OLLAMA=1
       - OLLAMA_PROXY_URL=http://ollama:11434
-      - OLLAMA_MODEL_LIST=qwen2.5:1.5b
+      - OLLAMA_MODEL_LIST=qwen2.5:1.5b,nomic-embed-text
       # Embedding model configuration
-      - DEFAULT_FILES_CONFIG=embedding_model=openai/text-embedding-3-small
+      - DEFAULT_FILES_CONFIG=embedding_model=ollama/nomic-embed-text
       - LLM_VISION_IMAGE_USE_BASE64=1
       # Suppress changelog modal + update-check redirect on every page load
       - FEATURE_FLAGS=-changelog,-check_updates
@@ -88,6 +88,8 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       ollama:
         condition: service_started
 
@@ -189,6 +191,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - S3_BUCKET=${S3_BUCKET:-lobe}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+        mc mb --ignore-existing "local/$$S3_BUCKET"
+    restart: "no"
 
   linux-sandbox:
     build:

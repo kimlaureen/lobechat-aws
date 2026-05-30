@@ -73,7 +73,7 @@
 $ curl -sI https://kimlaureen.duckdns.org/
 HTTP/2 307 
 alt-svc: h3=":443"; ma=2592000
-date: Mon, 11 May 2026 11:59:39 GMT
+date: Sat, 30 May 2026 13:50:40 GMT
 location: /chat
 via: 1.1 Caddy
 ```
@@ -86,11 +86,11 @@ via: 1.1 Caddy
 -->
 
 ```
-$ curl -v --max-time 5 http://3.255.161.125:47000/
-*   Trying 3.255.161.125:47000...
-* Connection timed out after 5006 milliseconds
+$ curl -v --max-time 5 http://18.202.153.230:47000/
+*   Trying 18.202.153.230:47000...
+* Connection timed out after 5007 milliseconds
 * Closing connection
-curl: (28) Connection timed out after 5006 milliseconds
+curl: (28) Connection timed out after 5007 milliseconds
 ```
 
 ## 7. Stack runtime — `docker compose ps`
