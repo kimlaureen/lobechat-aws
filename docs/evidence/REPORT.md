@@ -7,7 +7,7 @@
 | Student name | Kim Schäfer |
 | ESADE email | kimlaureen.schafer@alumni.esade.edu |
 | GitHub repo URL | https://github.com/kimlaureen/lobechat-aws (private; `joseporiolrius` invited as collaborator) |
-| Final evidence commit | Tagged as `final-v1.0.0` |
+| Final evidence commit | Final commit pushed: `fa1b72f0078ff62018b8cd26b756f07538549127` |
 | Final tag | `final-v1.0.0` |
 
 ## 2. Public URL
