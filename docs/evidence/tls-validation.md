@@ -15,7 +15,7 @@ LobeChat workflow, not only a green padlock.
 | Casdoor login flow completes from the public URL, with no `Secure cookie` or `redirect_uri` errors. | Passed | `casdoor-login.png`, captured `2026-05-12 13:06:28 CEST` |
 | LobeChat chat streaming works over HTTPS. | Passed | `chat-mcp.png`, captured `2026-05-30 15:46:26 CEST`; response visible in chat after prompt submission. |
 | At least one MCP tool invoked from chat returns a result. | Passed | `chat-mcp.png`, captured `2026-05-30 15:46:26 CEST`; filesystem MCP result lists `/workspace` entries. |
-| File upload to MinIO from chat works. | Pending successful upload screenshot | Needs `file-upload.png` after a successful upload from the chat attachment button. |
+| File upload to MinIO from chat works. | Passed | `file-upload.png`, captured `2026-05-30 15:50:34 CEST`; uploaded PDF is visible in chat and LobeChat responds using it. |
 | Direct connection to EC2 origin is rejected, not served directly. | Passed | `curl` to `http://18.202.153.230:47000/` timed out on `2026-05-30`; `http://18.202.153.230:443/` returned `400 Bad Request` because the port expects HTTPS. |
 | Browser shows a valid certificate chain on the public hostname. | Passed | `tls-cert.png`, captured `2026-05-30 15:46:55 CEST`; Safari reports an encrypted connection to `kimlaureen.duckdns.org`. |
 
@@ -32,6 +32,10 @@ LobeChat workflow, not only a green padlock.
 ### 3. Valid Certificate Chain
 
 ![tls-cert](tls-cert.png)
+
+### 4. File Upload To MinIO
+
+![file-upload](file-upload.png)
 
 ## Command Evidence
 
@@ -80,14 +84,9 @@ Client sent an HTTP request to an HTTPS server.
 
 ### File Upload To MinIO
 
-This still needs a successful screenshot:
-
-1. Open `https://kimlaureen.duckdns.org/chat`.
-2. Log in via Casdoor.
-3. Upload a small text file or image from the chat attachment button.
-4. Confirm LobeChat shows the uploaded file in the chat/file dock.
-5. Capture `docs/evidence/file-upload.png` with the public URL and ESADE email
-   visible in the same frame.
+The browser upload path was validated from chat. Screenshot
+`file-upload.png`, captured `2026-05-30 15:50:34 CEST`, shows a PDF attached in
+the LobeChat conversation and a model response below it.
 
 ## Notes
 
@@ -95,7 +94,6 @@ This still needs a successful screenshot:
   through Caddy works.
 - File upload validates the LobeChat-to-MinIO/S3 path and proxy request-size /
   timeout behavior.
-- The live MinIO bucket exists and the running LobeChat container now signs
-  uploads against `https://kimlaureen.duckdns.org:9000`, matching the public
-  browser upload endpoint. A successful browser upload screenshot is still
-  required before this item can be marked passed.
+- The live MinIO bucket exists and the running LobeChat container signs uploads
+  against `https://kimlaureen.duckdns.org:9000`, matching the public browser
+  upload endpoint.

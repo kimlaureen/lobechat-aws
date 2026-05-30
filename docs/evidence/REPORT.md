@@ -61,7 +61,13 @@
 
 ![chat-mcp](chat-mcp.png)
 
-## 5. Public reachability — `curl -sI https://<host>/`
+## 5. Screenshot — file upload to MinIO
+
+![file-upload](file-upload.png)
+
+*A PDF upload is visible in the chat and LobeChat responds below it, validating the file upload path through MinIO.*
+
+## 6. Public reachability — `curl -sI https://<host>/`
 
 <!--
   Run from OUTSIDE the EC2 (your laptop). Paste full output.
@@ -78,7 +84,7 @@ location: /chat
 via: 1.1 Caddy
 ```
 
-## 6. Negative test — port 47000 closed
+## 7. Negative test — port 47000 closed
 
 <!--
   Run from OUTSIDE the EC2 against the EIP. Paste full output.
@@ -93,7 +99,7 @@ $ curl -v --max-time 5 http://18.202.153.230:47000/
 curl: (28) Connection timed out after 5007 milliseconds
 ```
 
-## 7. Stack runtime — `docker compose ps`
+## 8. Stack runtime — `docker compose ps`
 
 <!--
   Run on the EC2. Paste full output.
