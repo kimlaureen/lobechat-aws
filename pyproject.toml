@@ -21,5 +21,6 @@ version_files = [
     "pyproject.toml:^version"
 ]
 tag_format = "final-v$version"
+legacy_tag_formats = ["v$version"]
 update_changelog_on_bump = true
 major_version_zero = true
