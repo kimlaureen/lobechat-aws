@@ -1,3 +1,17 @@
+## final-v0.7.0 (2026-06-01)
+
+## final-v1.0.0 (2026-05-30)
+
+### Feat
+
+- **infra**: add AWS deployment stack for final project
+
+### Fix
+
+- use SSM public parameter for AMI, fix Casdoor redirect URI, fill report sections 5-7
+- **infra**: replace em dashes with ASCII hyphens in security group descriptions
+- **infra**: use direct AMI ID — sandbox lacks ssm:GetParameters permission
+
 ## v0.6.0 (2026-05-04)
 
 ### Feat
