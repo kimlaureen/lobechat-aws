@@ -1,10 +1,10 @@
 # Build-free CI Reasoning
 
-![GitHub Actions run](docs/evidence/ci/actions-run.png)
+![GitHub Actions run](../docs/evidence/ci/actions-run.png)
 
 Supplemental gate-list evidence:
 
-![GitHub Actions gate list](docs/evidence/ci/actions-gates.png)
+![GitHub Actions gate list](../docs/evidence/ci/actions-gates.png)
 
 Actions run URL: https://github.com/kimlaureen/lobechat-aws/actions/runs/26869659345
 
