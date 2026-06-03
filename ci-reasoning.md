@@ -2,6 +2,10 @@
 
 ![GitHub Actions run](docs/evidence/ci/actions-run.png)
 
+Supplemental gate-list evidence:
+
+![GitHub Actions gate list](docs/evidence/ci/actions-gates.png)
+
 Actions run URL: https://github.com/kimlaureen/lobechat-aws/actions/runs/26869659345
 
 Commit SHA: 426a5a971ea7139ac39e6069668be641cc2a26dd
