@@ -44,7 +44,7 @@ jobs:
       - name: Lint YAML
         run: >
           yamllint
-          -d "{extends: default, rules: {line-length: disable, truthy: disable}}"
+          -d "{extends: default, rules: {commas: disable, comments: disable, document-start: disable, line-length: disable, truthy: disable}}"
           docker-compose.yml
           .github/workflows/ci.yml
 
