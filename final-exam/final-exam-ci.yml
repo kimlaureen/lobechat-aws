@@ -1,0 +1,95 @@
+---
+name: Build-free CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  static-gates:
+    name: Static gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history; gitleaks and cz rev-range need more than the default shallow clone.
+
+      - name: Prepare placeholder environment
+        run: |
+          # Safe for compose interpolation: .env.example contains placeholders, and .gitignore keeps real .env out of git.
+          cp .env.example .env
+          {
+            echo "OPENAPI_MCP_HEADERS={}"
+          } >> .env
+
+      - name: Validate compose configuration
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install yamllint
+        run: pipx install yamllint
+
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2
+
+      - name: Lint YAML
+        run: >
+          yamllint
+          -d "{extends: default, rules: {commas: disable, comments: disable, document-start: disable, line-length: disable, truthy: disable}}"
+          docker-compose.yml
+          .github/workflows/ci.yml
+
+      - name: Run hadolint on sandbox Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        continue-on-error: true # warn-only: existing Dockerfile findings should be visible without hiding later gates.
+        with:
+          dockerfile: dockerfiles/sandbox.Dockerfile
+
+      - name: Run hadolint on mcphub Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        continue-on-error: true # warn-only: existing Dockerfile findings should be visible without hiding later gates.
+        with:
+          dockerfile: dockerfiles/mcphub.Dockerfile
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true # warn-only: historical findings should surface without deleting this required gate.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true # warn-only: dependency findings are triage inputs for this first CI.
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true # warn-only: misconfigurations are expected in the current stack definition.
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "1"
+
+      - name: Check Conventional Commits
+        run: |
+          # Mirrors the existing local gate in .githooks/commit-msg, but CI has no commit-msg file.
+          uv run --group dev cz check --rev-range origin/main..HEAD
+
+      # Deliberately no pytest and no docker build/compose up:
+      # tests/ are live-stack integration tests that import openai/httpx and hit running endpoints such as vLLM /health.
