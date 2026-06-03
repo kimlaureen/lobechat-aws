@@ -2,9 +2,9 @@
 
 ![GitHub Actions run](docs/evidence/ci/actions-run.png)
 
-Actions run URL: TODO after first GitHub run
+Actions run URL: https://github.com/kimlaureen/lobechat-aws/actions/runs/26869439495
 
-Commit SHA: TODO after first GitHub run
+Commit SHA: 3a6b8119d815c85179635bb1a22c01a91bd0163e
 
 ## Part A - Why What I Did Matters
 
